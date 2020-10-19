@@ -1,8 +1,10 @@
 
-##---------------SVD-----------------------##
+### ---------------Singular Value Decomposition----------------------- ###
+
+#Load the Data Frame---
 DF<-data.frame(titles$userId,titles$movieId,titles$rating,stringsAsFactors = FALSE)
 str(DF)
-#converting data frame to a matrix
+#Converting data frame to a matrix
 library(tidyverse)
 install.packages("tidyverse")
 rat_mat <- titles %>% select(-timestamp) %>% 
@@ -21,8 +23,8 @@ View(rat_mattrain)
 
 ## 50% of the sample size
 smp_size <- floor(0.5 * nrow(rat_mat))
-## set the seed to make your partition reproducible
-set.seed(123) #randomization`
+## Set the seed to make your partition reproducible
+set.seed(123) #randomization
 train_ind <- sample(seq_len(nrow(rat_mat)), size = smp_size)
 View(train)
 
@@ -41,6 +43,7 @@ res.fpc <- fpc::dbscan(train, eps =0.02 , MinPts = 1)
 print(res.fpc)
 # dbscan package
 res.db <- dbscan::dbscan(train, 0.02, 1)
+# Clustering
 fviz_cluster(res.db, train, geom = "point",ellipse= TRUE, show.clust.cent = TRUE,
              palette = "jco", ggtheme = theme_classic())
 
@@ -60,19 +63,23 @@ plot(kNN(fr, eps = 25), train)
 ##SVD---------Singular Value Decomposition----
 # Computing the SVD
 svdtest<-svd(train$titles.rating, nu = min(1, 1), nv = min(3, 3))
+#Utility Matrix---
 approx20 <- svdtest$u[, 1:1] %*% diag(svdtest$d[1:1]) %*% t(svdtest$v[, 1:1])
 svdtest
 
 decomp<-irlba(train, nu =1, nv = 1)
+# Predict on the test set
 Predict <- b + (svdtest$u * sqrt(svdtest$d)) %*% (sqrt(svdtest$d) * t(svdtest$v))
 Prediction_matrix<-data.frame(train$titles.userId,train$titles.movieId,Predict[,"titles.rating"])
 View(Prediction_matrix)
-predictionFunction()
+
 
 # Renaming the rows and columns for easier lookups
 colnames(Predict) <- c("titles.rating")
 rownames(Predict) <- rownames(train)
 View(Predict)
+
+# RMSE function---
 
 RMSE <- function(predictionMatrix, actualMatrix){
   sqrt(mean((predictionMatrix - actualMatrix)^2, na.rm=T))
@@ -82,12 +89,12 @@ trainNA <- train
 is.na(train) <- train== 0
 RMSE2<-RMSE(Predict[,'titles.rating'], train$titles.rating)
 
-# calculate RMSE for SVD model using the imputed NA values as the basis
+# Calculate RMSE for SVD model using the imputed NA values as the basis
 IMP_SVD_RMSE <- sqrt(base::mean((train_ind - Predict)^2) )
 IMP_SVD_RMSE
 
 
-###Building recommender system for making predictions
+### Building recommender system for making Predictions
 getrecommendation <- function(titles.rating){
   if(titles.rating!= (RMSE+train$titles.rating)){
     paste("Previously Rated:")
@@ -104,7 +111,8 @@ Predict[,"titles.rating"]
 my.ran <- function(titles.rating){
   if(titles.rating !=Predict[,"titles.rating"])
     stop("Previously Rated:")
-  else if(titles.rating == "Predicted Rating:") return(round(Predict[,"titles.rating"],1))
+  else if(titles.rating == "Predicted Rating:") 
+  return(round(Predict[,"titles.rating"],1))
  
 }
 p<-my.ran("4.005282")
